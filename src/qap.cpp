@@ -123,10 +123,11 @@ Permutation QAP::localGreedy(unsigned const int &n)
 	Permutation act = generatePermutation(n);
 	cost = getCost(act);
 	bool found = false;
-	bool finish = false;
+	int init_cost;
 
 	do
 	{
+		init_cost = cost;
 		for (int i = 0; i < n - 1; i++)
 		{
 			for (int j = i + 1; j < n; j++)
@@ -148,12 +149,8 @@ Permutation QAP::localGreedy(unsigned const int &n)
 				break;
 			}
 		}
-		if (found == false)
-		{
-			finish = true;
-		}
 		found = false;
-	} while (finish == false);
+	} while (init_cost != cost);
 
 	return act;
 }
