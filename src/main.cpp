@@ -4,15 +4,6 @@
 #include "qap.hpp"
 
 
-int max_array_element(const std::vector<std::vector<int>> matrix) {
-	int maximum = 0;
-	for (auto&& row : matrix) {
-		auto max_row = std::max_element(row.begin(), row.end());
-		maximum = std::max(maximum, *max_row);
-	}
-	return maximum;
-}
-
 int main()
 {
 	srand(time(NULL));
@@ -22,21 +13,36 @@ int main()
 	int dim = qap.facilities.size();
 	std::cout << "Rozmiar: " << dim << std::endl;
 
-	Permutation solution;
+	std::pair<Permutation, int> solution;
 
 	clock_t begin = clock();
+	std::vector<int> steps;
+	std::vector<int> costs;
+	std::vector<Permutation> perms;
 	int l = 0;
 	do
 	{
 		solution = qap.localGreedy(dim);
 		l++;
+		steps.push_back(solution.second);
+		costs.push_back(qap.getCost(solution.first));
+		perms.push_back(solution.first);
 	} while (double(clock() - begin) / CLOCKS_PER_SEC < 10);
 
 	double func_time = (double(clock() - begin) / CLOCKS_PER_SEC) / l;
 
-	std::cout << "Performance: " << qap.getCost(solution) << std::endl;
-	std::cout << "Time: " << func_time << std::endl;
-	std::cout << "l " << l;
+	std::cout << "Performance: " << qap.getCost(solution.first) << std::endl;
+	std::cout << "Average time: " << func_time << std::endl;
+	std::cout << "l " << l << std::endl;
+
+	std::cout << std::endl << "Heuristics" << std::endl;
+	Permutation heur = qap.heuristics(dim);
+	std::cout << "Performance: " << qap.getCost(heur) << std::endl;
+
+	for (int el = 0; el < heur.size(); el++)
+	{
+		std::cout << heur[el] << " ";
+	}
 
 	getchar();
 	return 0;
