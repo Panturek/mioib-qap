@@ -64,9 +64,13 @@ int QAP::getCost(const Permutation &perm)
 }
 
 
-int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm)
+int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm, const int& i, const int& j)
 {
 	int new_cost = cost;
+	new_cost -= facilities[i][j] * locations[old_perm[i]][old_perm[j]];
+	new_cost += facilities[i][j] * locations[new_perm[i]][new_perm[j]];
+
+	/*
 	for (int i = 0; i < old_perm.size(); i++)
 	{
 		if( old_perm[i] != new_perm[i] ){
@@ -77,6 +81,7 @@ int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm)
 			}
 		}
 	}
+	*/
 	return new_cost;
 }
 
@@ -114,29 +119,42 @@ Permutation QAP::randomWalk(unsigned const int &n, const double &time_seconds)
 
 Permutation QAP::localGreedy(unsigned const int &n)
 {
+	int steps = 0;
 	Permutation act = generatePermutation(n);
 	cost = getCost(act);
+	bool found = false;
 	bool finish = false;
 
-	for (int i = 0; i < n - 1; i++)
+	do
 	{
-		for (int j = i + 1; j < n; j++)
+		for (int i = 0; i < n - 1; i++)
 		{
-			Permutation y(act);
-			std::swap(y[i], y[j]);
-
-			if (updateCost(act, y) < cost)
+			for (int j = i + 1; j < n; j++)
 			{
-				act = y;
-				finish = true;
+				Permutation y(act);
+				std::swap(y[i], y[j]);
+
+				int new_cost = updateCost(act, y, i, j);
+				if (new_cost < cost)
+				{
+					act = y;
+					found = true;
+					steps++;
+					break;
+				}
+			}
+			if (found == true)
+			{
 				break;
 			}
 		}
-		if (finish == true)
+		if (found == false)
 		{
-			break;
+			finish = true;
 		}
-	}
+		found = false;
+	} while (finish == false);
+
 	return act;
 }
 
@@ -144,21 +162,55 @@ Permutation QAP::localSteepest(unsigned const int &n)
 {
 	Permutation act = generatePermutation(n);
 	cost = getCost(act);
+	int init_cost;
 
-	for (int i = 0; i < n - 1; i++)
+	bool finish = false;
+
+	do
 	{
-		for (int j = i + 1; j < n; j++)
+		init_cost = cost;
+		for (int i = 0; i < n - 1; i++)
 		{
-			Permutation y(act);
-			std::swap(y[i], y[j]);
-
-			int new_cost = updateCost(act, y);
-			if (new_cost < cost)
+			for (int j = i + 1; j < n; j++)
 			{
-				act = y;
-				cost = new_cost;
+				Permutation y(act);
+				std::swap(y[i], y[j]);
+
+				int new_cost = updateCost(act, y, i, j);
+				if (new_cost < cost)
+				{
+					act = y;
+					cost = new_cost;
+				}
 			}
 		}
-	}
+	} while (init_cost != cost);
+
 	return act;
+}
+
+std::pair<int, int> max_array_element(const std::vector<std::vector<int>> matrix) {
+	int maximum = 0;
+	int maxi = 0;
+	int maxj = 0;
+
+	for (int i = 0; i < matrix.size(); i++)
+	{
+		auto row = matrix[i];
+		auto max_row = std::max_element(row.begin(), row.end());
+		if (maximum > *max_row) {
+			maximum = *max_row;
+			maxi = i;
+			maxj = std::distance(row.begin(), max_row);
+		}
+	}
+
+	return std::make_pair(maxi, maxj);
+}
+
+Permutation QAP::heuristics(unsigned const int &n)
+{
+	std::vector<Permutation> P = facilities;
+	std::vector<Permutation> L = locations;
+	return P[0];
 }

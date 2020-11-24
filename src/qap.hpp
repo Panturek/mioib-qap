@@ -13,9 +13,10 @@ public:
 	Permutation generatePermutation(unsigned const int &n);
 	void readData( const std::string filename );
 	int getCost(const Permutation &perm );
-	int updateCost(const Permutation &, const Permutation &);
+	int updateCost(const Permutation &, const Permutation &, const int& i, const int& j);
 	Permutation randomSearch(unsigned const int &n, const double &time_seconds);
 	Permutation randomWalk(unsigned const int &n, const double &time_seconds);
 	Permutation localGreedy(unsigned const int &n);
 	Permutation localSteepest(unsigned const int &n);
+	Permutation heuristics(unsigned const int &n);
 };

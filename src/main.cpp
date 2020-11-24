@@ -1,6 +1,17 @@
 #include <iostream>
 #include <ctime>
+#include <algorithm>
 #include "qap.hpp"
+
+
+int max_array_element(const std::vector<std::vector<int>> matrix) {
+	int maximum = 0;
+	for (auto&& row : matrix) {
+		auto max_row = std::max_element(row.begin(), row.end());
+		maximum = std::max(maximum, *max_row);
+	}
+	return maximum;
+}
 
 int main()
 {
