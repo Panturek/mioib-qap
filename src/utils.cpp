@@ -23,6 +23,43 @@ void printToFile(const std::string filename,
 	output.close();
 }
 
+void randomPrintToFile(const std::string filename,
+	const std::vector<int> costs,
+	const std::vector<int> steps,
+	const std::vector<Permutation> permutations)
+{
+	std::ofstream output;
+	output.open(filename);
+	for (int i = 0; i < costs.size(); i++)
+	{
+		output << costs[i] << ",\t"
+			<< steps[i] << ",\t";
+		for (auto&& n : permutations[i]) {
+			output << n << " ";
+		}
+		output << "\n";
+	}
+	output.close();
+}
+
+void heuristicsPrintToFile(const std::string filename,
+	const double f_time,
+	const int cost,
+	const Permutation permutation)
+{
+	std::ofstream output;
+	output.open(filename);
+
+	output << cost << ",\t"
+		<< f_time << ",\t";
+	for (auto&& n : permutation) {
+		output << n << " ";
+	}
+	output << "\n";
+
+	output.close();
+}
+
 std::vector<int> row_sum(const std::vector<std::vector<int>> matrix) {
 	std::vector<int> result;
 	for (int i = 0; i < matrix.size(); i++)

@@ -155,6 +155,8 @@ std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
 	bool found = false;
 	int init_cost;
 
+	clock_t begin = clock();
+
 	do
 	{
 		init_cost = cost;
@@ -162,6 +164,12 @@ std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
 		{
 			for (int j = i + 1; j < n; j++)
 			{
+				// Terminate
+				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
+				{
+					return std::make_pair(act, steps);
+				}
+
 				Permutation y(act);
 				std::swap(y[i], y[j]);
 
@@ -195,6 +203,8 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 	Permutation best_perm = act;
 	int best_cost = cost;
 
+	clock_t begin = clock();
+
 	do
 	{
 		cost = best_cost;
@@ -202,6 +212,12 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 		{
 			for (int j = i + 1; j < n; j++)
 			{
+				// Terminate
+				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
+				{
+					return std::make_pair(act, steps);
+				}
+
 				Permutation y = act;
 				std::swap(y[i], y[j]);
 
@@ -243,5 +259,7 @@ std::pair<Permutation, int> QAP::heuristics(unsigned const int &n)
 		rows[max_row] = INT_MIN;
 	}
 
-	return std::make_pair(solution, 0);
+	int final_cost = getCost(solution);
+
+	return std::make_pair(solution, final_cost);
 }

@@ -29,6 +29,7 @@ void time_experiment(const std::string filename, QAP &qap, Algorithm algo)
 	clock_t begin = clock();
 	do
 	{
+		clock_t algo_time = clock();
 		if (algo == localSteepest)
 		{
 			solution = qap.localSteepest(dim);
@@ -43,8 +44,8 @@ void time_experiment(const std::string filename, QAP &qap, Algorithm algo)
 		steps.push_back(solution.second);
 		costs.push_back(qap.getCost(solution.first));
 		perms.push_back(solution.first);
-		times.push_back(double(clock() - begin) / CLOCKS_PER_SEC);
-	} while (double(clock() - begin) / CLOCKS_PER_SEC < 10);
+		times.push_back(double(clock() - algo_time) / CLOCKS_PER_SEC);
+	} while (double(clock() - begin) / CLOCKS_PER_SEC < 120);
 
 	double func_time = (double(clock() - begin) / CLOCKS_PER_SEC) / l;
 
@@ -60,57 +61,103 @@ void random_experiment(const std::string filename, QAP &qap, Algorithm algo)
 	std::vector<int> steps;
 	std::vector<int> costs;
 	std::vector<Permutation> perms;
+	std::string algo_name;
 
-	if (algo == randomSearch)
+	for (int i = 0; i < 200; i++)
 	{
-		solution = qap.randomSearch(dim, 1);
-	}
-	else if (algo == randomWalk)
-	{
-		solution = qap.randomWalk(dim, 1);
-	}
+		if (algo == randomSearch)
+		{
+			solution = qap.randomSearch(dim, 0.1);
+			algo_name = "r";
+		}
+		else if (algo == randomWalk)
+		{
+			solution = qap.randomWalk(dim, 0.1);
+			algo_name = "rw";
+		}
+		steps.push_back(solution.second);
+		costs.push_back(qap.getCost(solution.first));
+		perms.push_back(solution.first);
 
-	printToFile("results/random/" + filename, func_time, costs, steps, perms);
+	}
+	randomPrintToFile("results/random/" +algo_name+"_"+ filename, costs, steps, perms);
 }
 
-/*
 void heuristics_experiment(const std::string filename, QAP &qap)
 {
 	qap.readData("data/" + filename);
 	int dim = qap.facilities.size();
 
+	std::pair<Permutation, int> solution;
+
 	clock_t begin = clock();
 
-	qap.heuristics(dim);
+	solution = qap.heuristics(dim);
 
 	double func_time = double(clock() - begin) / CLOCKS_PER_SEC;
 
+	heuristicsPrintToFile("results/heur/" + filename, func_time, solution.second, solution.first);
 }
-*/
+
 
 int main()
 {
 	srand(time(NULL));
 
-	std::vector<std::string> files_names = { "bur26a.dat", "esc16i.dat" };
+	//std::vector<std::string> files_names = {"chr12a.dat", "chr18a.dat", "bur26a.dat", "esc32e.dat", "lipa50a.dat", "sko100a.dat" };
 
-	std::vector<Algorithm> algos = { localGreedy, localSteepest };
+	std::vector<std::string> files_names = { "esc32e.dat" };
+
+	std::vector<Algorithm> algos = { localGreedy, localSteepest, randomSearch, randomWalk, heuristics };
 
 	for (auto&& algo : algos)
 	{
-		for (auto&& filename : files_names)
+		
+		if (algo == localGreedy || algo == localSteepest)
 		{
-			QAP qap;
-			time_experiment(filename, qap, algo);
-
-
-			if (algo == localGreedy)
+			for (auto&& filename : files_names)
 			{
-				std::cout << ">> Finished Greedy on " << filename << std::endl;
+				QAP qap;
+				time_experiment(filename, qap, algo);
+
+
+				if (algo == localGreedy)
+				{
+					std::cout << ">> Finished Greedy on " << filename << std::endl;
+				}
+				else
+				{
+					std::cout << ">> Finished Steepest on " << filename << std::endl;
+				}
 			}
-			else
+		}
+		
+		else if (algo == randomSearch || algo == randomWalk)
+		{
+			for (auto&& filename : files_names)
 			{
-				std::cout << ">> Finished Steepest on " << filename << std::endl;
+				QAP qap;
+				random_experiment(filename, qap, algo);
+
+
+				if (algo == randomSearch)
+				{
+					std::cout << ">> Finished Random on " << filename << std::endl;
+				}
+				else
+				{
+					std::cout << ">> Finished RandomWalk on " << filename << std::endl;
+				}
+			}
+		}
+
+		else
+		{
+			for (auto&& filename : files_names)
+			{
+				QAP qap;
+				heuristics_experiment(filename, qap );
+				std::cout << ">> Finished Heuristics on " << filename << std::endl;
 			}
 		}
 	}
