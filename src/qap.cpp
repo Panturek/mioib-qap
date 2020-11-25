@@ -64,16 +64,56 @@ int QAP::getCost(const Permutation &perm)
 }
 
 
-int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm, const int& i, const int& j)
+int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm, unsigned const int& i, unsigned const int& j)
 {
 	int new_cost = cost;
-	new_cost -= facilities[i][j] * locations[old_perm[i]][old_perm[j]];
-	new_cost += facilities[i][j] * locations[new_perm[i]][new_perm[j]];
+	
+	int dim = old_perm.size();
+	
+	for (int idx = 0; idx < dim; idx++)
+	{
+
+		if (idx == i)
+		{
+			new_cost -= facilities[i][idx] * locations[old_perm[i]][old_perm[idx]];
+			new_cost += facilities[i][idx] * locations[new_perm[i]][new_perm[idx]];
+
+			new_cost -= facilities[j][idx] * locations[old_perm[j]][old_perm[idx]];
+			new_cost += facilities[j][idx] * locations[new_perm[j]][new_perm[idx]];
+
+			new_cost -= facilities[idx][j] * locations[old_perm[idx]][old_perm[j]];
+			new_cost += facilities[idx][j] * locations[new_perm[idx]][new_perm[j]];
+
+			continue;
+		}
+
+		if (idx == j)
+		{
+			new_cost -= facilities[idx][j] * locations[old_perm[idx]][old_perm[j]];
+			new_cost += facilities[idx][j] * locations[new_perm[idx]][new_perm[j]];
+
+			continue;
+		}
+
+		new_cost -= facilities[i][idx] * locations[old_perm[i]][old_perm[idx]];
+		new_cost += facilities[i][idx] * locations[new_perm[i]][new_perm[idx]];
+
+		new_cost -= facilities[j][idx] * locations[old_perm[j]][old_perm[idx]];
+		new_cost += facilities[j][idx] * locations[new_perm[j]][new_perm[idx]];
+
+		new_cost -= facilities[idx][i] * locations[old_perm[idx]][old_perm[i]];
+		new_cost += facilities[idx][i] * locations[new_perm[idx]][new_perm[i]];
+
+		new_cost -= facilities[idx][j] * locations[old_perm[idx]][old_perm[j]];
+		new_cost += facilities[idx][j] * locations[new_perm[idx]][new_perm[j]];
+	}
 	return new_cost;
+
 }
 
-Permutation QAP::randomSearch(unsigned const int &n, const double &time_seconds)
+std::pair<Permutation, int> QAP::randomSearch(unsigned const int &n, const double &time_seconds)
 {
+	int steps = 0;
 	Permutation act = generatePermutation(n);
 
 	clock_t begin = clock();
@@ -81,14 +121,16 @@ Permutation QAP::randomSearch(unsigned const int &n, const double &time_seconds)
 	do
 	{
 		act = generatePermutation(n);
+		steps++;
 
 	} while (double(clock() - begin) / CLOCKS_PER_SEC < time_seconds);
 
-	return act;
+	return std::make_pair(act, steps);
 }
 
-Permutation QAP::randomWalk(unsigned const int &n, const double &time_seconds)
+std::pair<Permutation, int> QAP::randomWalk(unsigned const int &n, const double &time_seconds)
 {
+	int steps = 0;
 	Permutation act = generatePermutation(n);
 
 	clock_t begin = clock();
@@ -99,9 +141,10 @@ Permutation QAP::randomWalk(unsigned const int &n, const double &time_seconds)
 		int random_j = (std::rand() % (n - random_i - 1)) + random_i + 1;
 
 		std::swap(act[random_i], act[random_j]);
+		steps++;
 	} while (double(clock() - begin) / CLOCKS_PER_SEC < time_seconds);
 
-	return act;
+	return std::make_pair(act, steps);
 }
 
 std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
@@ -148,64 +191,38 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 	int steps = 0;
 	Permutation act = generatePermutation(n);
 	cost = getCost(act);
-	int init_cost;
-
-	bool finish = false;
+	
+	Permutation best_perm = act;
+	int best_cost = cost;
 
 	do
 	{
-		init_cost = cost;
+		cost = best_cost;
 		for (int i = 0; i < n - 1; i++)
 		{
 			for (int j = i + 1; j < n; j++)
 			{
-				Permutation y(act);
+				Permutation y = act;
 				std::swap(y[i], y[j]);
 
 				int new_cost = updateCost(act, y, i, j);
-				if (new_cost < cost)
+				if (new_cost < best_cost)
 				{
-					act = y;
-					cost = new_cost;
-					steps++;
+					best_perm = y;
+					best_cost = new_cost;
 				}
 			}
 		}
-	} while (init_cost != cost);
+		act = best_perm;
+		steps++;
+	} while (best_cost != cost);
 
 	return std::make_pair(act, steps);
 }
 
-std::vector<int> row_sum(const std::vector<std::vector<int>> matrix) {
-	std::vector<int> result;
-	for (int i = 0; i < matrix.size(); i++)
-	{
-		auto row = matrix[i];
-		int row_sum = std::accumulate(row.begin(), row.end(), 0);
-		result.push_back(row_sum);
-	}
 
-	return result;
-}
 
-std::vector<int> col_sum(const std::vector<std::vector<int>> matrix) {
-	auto dim = matrix.size();
-	std::vector<int>result(dim, 0);
-
-	for (int i = 0; i < dim; i++)
-	{
-		auto row = matrix[i];
-		
-		for (int j = 0; j < dim; j++)
-		{
-			result[j] += row[j];
-		}
-	}
-
-	return result;
-}
-
-Permutation QAP::heuristics(unsigned const int &n)
+std::pair<Permutation, int> QAP::heuristics(unsigned const int &n)
 {
 	std::vector<Permutation> P = facilities;
 	std::vector<Permutation> L = locations;
@@ -226,5 +243,5 @@ Permutation QAP::heuristics(unsigned const int &n)
 		rows[max_row] = INT_MIN;
 	}
 
-	return solution;
+	return std::make_pair(solution, 0);
 }

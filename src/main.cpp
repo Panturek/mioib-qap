@@ -2,74 +2,122 @@
 #include <ctime>
 #include <algorithm>
 #include <fstream>
+#include <string>
 #include "qap.hpp"
 
 
-void printToFile(const std::string filename,
-	const int time,
-	const std::vector<int> costs,
-	const std::vector<int> steps,
-	const std::vector<Permutation> permutations)
+
+
+enum Algorithm
 {
-	std::ofstream output;
-	output.open(filename);
-	for (int i = 0; i < costs.size(); i++)
+	randomSearch, randomWalk, localSteepest, localGreedy, heuristics
+};
+
+void time_experiment(const std::string filename, QAP &qap, Algorithm algo)
+{
+	qap.readData("data/"+filename);
+	int dim = qap.facilities.size();
+
+	std::pair<Permutation, int> solution;
+	std::vector<double> times;
+	std::vector<int> steps;
+	std::vector<int> costs;
+	std::vector<Permutation> perms;
+	std::string algo_name;
+
+	int l = 0;
+	clock_t begin = clock();
+	do
 	{
-		output << costs[i] << ",\t"
-			<< time << ",\t"
-			<< steps[i] << ",\t";
-		for (auto&& n : permutations[i]) {
-			output << n << " ";
+		if (algo == localSteepest)
+		{
+			solution = qap.localSteepest(dim);
+			algo_name = "steepest";
 		}
-		output << "\n";
-	}
-	output.close();
+		else if (algo == localGreedy)
+		{
+			solution = qap.localGreedy(dim);
+			algo_name = "greedy";
+		}
+		l++;
+		steps.push_back(solution.second);
+		costs.push_back(qap.getCost(solution.first));
+		perms.push_back(solution.first);
+		times.push_back(double(clock() - begin) / CLOCKS_PER_SEC);
+	} while (double(clock() - begin) / CLOCKS_PER_SEC < 10);
+
+	double func_time = (double(clock() - begin) / CLOCKS_PER_SEC) / l;
+
+	printToFile("results/"+algo_name+"_"+filename, times, func_time, costs, steps, perms);
 }
 
+void random_experiment(const std::string filename, QAP &qap, Algorithm algo)
+{
+	qap.readData("data/" + filename);
+	int dim = qap.facilities.size();
+
+	std::pair<Permutation, int> solution;
+	std::vector<int> steps;
+	std::vector<int> costs;
+	std::vector<Permutation> perms;
+
+	if (algo == randomSearch)
+	{
+		solution = qap.randomSearch(dim, 1);
+	}
+	else if (algo == randomWalk)
+	{
+		solution = qap.randomWalk(dim, 1);
+	}
+
+	printToFile("results/random/" + filename, func_time, costs, steps, perms);
+}
+
+/*
+void heuristics_experiment(const std::string filename, QAP &qap)
+{
+	qap.readData("data/" + filename);
+	int dim = qap.facilities.size();
+
+	clock_t begin = clock();
+
+	qap.heuristics(dim);
+
+	double func_time = double(clock() - begin) / CLOCKS_PER_SEC;
+
+}
+*/
 
 int main()
 {
 	srand(time(NULL));
 
-	QAP qap;
-	qap.readData("data/bur26a.dat");
-	int dim = qap.facilities.size();
-	std::cout << "Rozmiar: " << dim << std::endl;
+	std::vector<std::string> files_names = { "bur26a.dat", "esc16i.dat" };
 
-	std::pair<Permutation, int> solution;
+	std::vector<Algorithm> algos = { localGreedy, localSteepest };
 
-	clock_t begin = clock();
-	std::vector<int> steps;
-	std::vector<int> costs;
-	std::vector<Permutation> perms;
-	int l = 0;
-	do
+	for (auto&& algo : algos)
 	{
-		solution = qap.localSteepest(dim);
-		l++;
-		steps.push_back(solution.second);
-		costs.push_back(qap.getCost(solution.first));
-		perms.push_back(solution.first);
-	} while (double(clock() - begin) / CLOCKS_PER_SEC < 600);
-
-	double func_time = (double(clock() - begin) / CLOCKS_PER_SEC) / l;
-
-	printToFile("result.txt", func_time, costs, steps, perms);
+		for (auto&& filename : files_names)
+		{
+			QAP qap;
+			time_experiment(filename, qap, algo);
 
 
-	std::cout << "Performance: " << qap.getCost(solution.first) << std::endl;
-	std::cout << "Average time: " << func_time << std::endl;
-	std::cout << "l " << l << std::endl;
-
-	std::cout << std::endl << "Heuristics" << std::endl;
-	Permutation heur = qap.heuristics(dim);
-	std::cout << "Performance: " << qap.getCost(heur) << std::endl;
-
-	for (int el = 0; el < heur.size(); el++)
-	{
-		std::cout << heur[el] << " ";
+			if (algo == localGreedy)
+			{
+				std::cout << ">> Finished Greedy on " << filename << std::endl;
+			}
+			else
+			{
+				std::cout << ">> Finished Steepest on " << filename << std::endl;
+			}
+		}
 	}
 
+
+
+	std::cout << ">> Finished all experiments" << std::endl;
 	getchar();
 	return 0;
 }
