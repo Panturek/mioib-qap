@@ -152,6 +152,10 @@ std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
 	int steps = 0;
 	Permutation act = generatePermutation(n);
 	cost = getCost(act);
+
+	// EXPERIMENT
+	int de_cost = cost;
+	
 	bool found = false;
 	int init_cost;
 
@@ -191,7 +195,8 @@ std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
 		found = false;
 	} while (init_cost != cost);
 
-	return std::make_pair(act, steps);
+	// CHANGED FROM STEPS TO DE_COST
+	return std::make_pair(act, de_cost);
 }
 
 std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
@@ -199,6 +204,9 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 	int steps = 0;
 	Permutation act = generatePermutation(n);
 	cost = getCost(act);
+
+	// EXPERIMENT
+	int de_cost = cost;
 	
 	Permutation best_perm = act;
 	int best_cost = cost;
@@ -233,7 +241,8 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 		steps++;
 	} while (best_cost != cost);
 
-	return std::make_pair(act, steps);
+	// CHANGED FROM STEPS TO DE_COST
+	return std::make_pair(act, de_cost);
 }
 
 
