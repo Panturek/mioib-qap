@@ -11,6 +11,7 @@ void printToFile(const std::string filename,
 	const double f_time,
 	const std::vector<int> costs,
 	const std::vector<int> steps,
+	const std::vector<int> starting_costs,
 	const std::vector<Permutation> permutations);
 
 void randomPrintToFile(const std::string filename,

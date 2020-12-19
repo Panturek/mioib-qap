@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <fstream>
 #include <string>
+#include <tuple>
 #include "qap.hpp"
 
 enum Algorithm

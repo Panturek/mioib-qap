@@ -4,20 +4,27 @@
 #include <cstdlib>
 #include <ctime>
 #include <fstream>
+#include <tuple>
 
 Permutation QAP::generatePermutation(unsigned const int & n)
 {
 	Permutation arr(n);
-	std::iota(arr.begin(), arr.end(), 0);
-
+	Permutation res;
 	for (int i = 0; i < n; i++)
 	{
-		int random = std::rand() % (n - i);
-		int hold = arr[random];
-		arr.erase(arr.begin() + random);
-		arr.push_back(hold);
+		arr[i] = i;
 	}
-	return arr;
+
+	while (arr.size())
+	{
+		int new_n = arr.size();
+		int index = rand() % new_n;
+		int num = arr[index];
+		std::swap(arr[index], arr[new_n - 1]);
+		arr.pop_back();
+		res.push_back(num);
+	}
+	return res;
 }
 
 void QAP::readData(const std::string filename)
@@ -111,7 +118,7 @@ int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm, un
 
 }
 
-std::pair<Permutation, int> QAP::randomSearch(unsigned const int &n, const double &time_seconds)
+std::tuple<Permutation, int> QAP::randomSearch(unsigned const int &n, const double &time_seconds)
 {
 	int steps = 0;
 	Permutation act = generatePermutation(n);
@@ -125,10 +132,10 @@ std::pair<Permutation, int> QAP::randomSearch(unsigned const int &n, const doubl
 
 	} while (double(clock() - begin) / CLOCKS_PER_SEC < time_seconds);
 
-	return std::make_pair(act, steps);
+	return std::make_tuple(act, steps);
 }
 
-std::pair<Permutation, int> QAP::randomWalk(unsigned const int &n, const double &time_seconds)
+std::tuple<Permutation, int> QAP::randomWalk(unsigned const int &n, const double &time_seconds)
 {
 	int steps = 0;
 	Permutation act = generatePermutation(n);
@@ -144,10 +151,10 @@ std::pair<Permutation, int> QAP::randomWalk(unsigned const int &n, const double 
 		steps++;
 	} while (double(clock() - begin) / CLOCKS_PER_SEC < time_seconds);
 
-	return std::make_pair(act, steps);
+	return std::make_tuple(act, steps);
 }
 
-std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
+std::tuple<Permutation, int, int> QAP::localGreedy(unsigned const int &n)
 {
 	int steps = 0;
 	Permutation act = generatePermutation(n);
@@ -171,7 +178,7 @@ std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
 				// Terminate
 				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
 				{
-					return std::make_pair(act, steps);
+					return std::make_tuple(act, de_cost, steps);
 				}
 
 				Permutation y(act);
@@ -195,11 +202,10 @@ std::pair<Permutation, int> QAP::localGreedy(unsigned const int &n)
 		found = false;
 	} while (init_cost != cost);
 
-	// CHANGED FROM STEPS TO DE_COST
-	return std::make_pair(act, de_cost);
+	return std::make_tuple(act, de_cost, steps);
 }
 
-std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
+std::tuple<Permutation, int, int> QAP::localSteepest(unsigned const int &n)
 {
 	int steps = 0;
 	Permutation act = generatePermutation(n);
@@ -223,7 +229,7 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 				// Terminate
 				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
 				{
-					return std::make_pair(act, steps);
+					return std::make_tuple(act, de_cost, steps);
 				}
 
 				Permutation y = act;
@@ -241,13 +247,12 @@ std::pair<Permutation, int> QAP::localSteepest(unsigned const int &n)
 		steps++;
 	} while (best_cost != cost);
 
-	// CHANGED FROM STEPS TO DE_COST
-	return std::make_pair(act, de_cost);
+	return std::make_tuple(act, de_cost, steps);
 }
 
 
 
-std::pair<Permutation, int> QAP::heuristics(unsigned const int &n)
+Permutation QAP::heuristics(unsigned const int &n)
 {
 	std::vector<Permutation> P = facilities;
 	std::vector<Permutation> L = locations;
@@ -268,7 +273,5 @@ std::pair<Permutation, int> QAP::heuristics(unsigned const int &n)
 		rows[max_row] = INT_MIN;
 	}
 
-	int final_cost = getCost(solution);
-
-	return std::make_pair(solution, final_cost);
+	return solution;
 }

@@ -5,6 +5,7 @@ void printToFile(const std::string filename,
 	const double f_time,
 	const std::vector<int> costs,
 	const std::vector<int> steps,
+	const std::vector<int> starting_costs,
 	const std::vector<Permutation> permutations)
 {
 	std::ofstream output;
@@ -14,7 +15,8 @@ void printToFile(const std::string filename,
 		output << costs[i] << ",\t"
 			<< time[i] << ",\t"
 			<< f_time << ",\t"
-			<< steps[i] << ",\t";
+			<< steps[i] << ",\t"
+			<< starting_costs[i] << ",\t";
 		for (auto&& n : permutations[i]) {
 			output << n << " ";
 		}
