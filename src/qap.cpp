@@ -5,6 +5,10 @@
 #include <ctime>
 #include <fstream>
 #include <tuple>
+#include <map>
+#include <climits>
+
+typedef std::pair<int, int> Move;
 
 Permutation QAP::generatePermutation(unsigned const int & n)
 {
@@ -250,7 +254,86 @@ std::tuple<Permutation, int, int> QAP::localSteepest(unsigned const int &n)
 	return std::make_tuple(act, de_cost, steps);
 }
 
+std::tuple<Permutation, int, int> QAP::tabu(unsigned const int &n){
 
+    std::map<Move, int> tabuList;
+    std::map<Move, int> costList;
+
+    for( int i = 0; i < n - 1; i++){
+        for( int j = i+1; j < n; j++){
+            tabuList[ Move(i, j) ] = 0;
+        }
+    }
+    const int validityTime = 5;
+
+    int steps = 0;
+    Permutation act = generatePermutation(n);
+    cost = getCost(act);
+
+	Permutation best_perm = act;
+	int best_cost = cost;
+
+	clock_t begin = clock();
+
+	do
+	{
+        Move best_move(0, 0);
+        for (int i = 0; i < n - 1; i++)
+        {
+			for (int j = i + 1; j < n; j++)
+			{
+				// Terminate
+				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
+				{
+					return std::make_tuple(act, best_cost, steps);
+				}
+
+				Permutation y = act;
+				std::swap(y[i], y[j]);
+
+                int cost = updateCost(act, y, i, j);
+                if( cost < best_cost )
+                {
+                    best_move = Move(i, j);
+                }
+                costList[Move(i, j)] = cost;
+            }
+        }
+
+        if(best_move == Move(0,0))
+        {
+            best_move = Move(1, 2);
+            int not_the_worse_cost = costList[Move(1, 2)];
+            for (auto &&elem : tabuList)
+            {
+                if( elem.second > 0 )
+                {
+                    continue;
+                }
+                if( not_the_worse_cost < costList[elem.first] )
+                {
+                    not_the_worse_cost = costList[elem.first];
+                    best_move = elem.first;
+                }
+            }
+        }
+
+        for(auto&& elem: tabuList)
+        {
+            if( elem.second > 0 )
+            {
+                elem.second--;
+            }
+        }
+
+        tabuList[best_move] = validityTime;
+        std::swap(act[best_move.first], act[best_move.second]);
+
+        steps++;
+    } while(1);
+
+    return std::make_tuple(act, best_cost, steps);
+}
 
 Permutation QAP::heuristics(unsigned const int &n)
 {

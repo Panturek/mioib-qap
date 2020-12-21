@@ -17,6 +17,6 @@ public:
 	std::tuple<Permutation, int> randomWalk(unsigned const int &n, const double &time_seconds);
 	std::tuple<Permutation, int, int> localGreedy(unsigned const int &n);
 	std::tuple<Permutation, int, int> localSteepest(unsigned const int &n);
-	Permutation heuristics(unsigned const int &n);
-
+    std::tuple<Permutation, int, int> tabu(unsigned const int &n);
+    Permutation heuristics(unsigned const int &n);
 };
