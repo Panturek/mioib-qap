@@ -299,7 +299,7 @@ std::tuple<Permutation, int, int> QAP::tabu(unsigned const int &n){
         std::sort(candidates.begin(), candidates.end());
         auto best_candidate = candidates.front();
 
-        for (int k = k_candidates; k < candidates.size(); k++)
+        for (int k = 0; k < k_candidates; k++)
         {
             auto candidate = candidates[k];
             // Terminate
