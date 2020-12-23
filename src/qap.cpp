@@ -5,9 +5,10 @@
 #include <ctime>
 #include <fstream>
 #include <tuple>
+#include <cmath>
+#include <random>
 #include <map>
 #include <climits>
-#include <cmath>
 
 typedef std::pair<int, int> Move;
 
@@ -123,6 +124,29 @@ int QAP::updateCost(const Permutation& old_perm, const Permutation& new_perm, un
 
 }
 
+double QAP::findTemp()
+{
+	int dim = facilities.size();
+	unsigned int diff_sum = 0;
+	for (int i = 0; i < 10000; i++)
+	{
+		Permutation perm = generatePermutation(dim);
+		cost = getCost(perm);
+
+		int random_i = std::rand() % (dim - 1);
+		int random_j = (std::rand() % (dim - random_i - 1)) + random_i + 1;
+		Permutation neighbour(perm);
+		std::swap(neighbour[random_i], neighbour[random_j]);
+		int cost2 = updateCost(perm, neighbour, random_i, random_j);
+
+		diff_sum += abs(cost - cost2);
+	}
+	double diff_mean = diff_sum / 10000;
+	double c = -diff_mean / log(0.9);
+
+	return c;
+}
+
 std::tuple<Permutation, int> QAP::randomSearch(unsigned const int &n, const double &time_seconds)
 {
 	int steps = 0;
@@ -181,7 +205,7 @@ std::tuple<Permutation, int, int> QAP::localGreedy(unsigned const int &n)
 			for (int j = i + 1; j < n; j++)
 			{
 				// Terminate
-				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
+				if (double(clock() - begin) / CLOCKS_PER_SEC > 60)
 				{
 					return std::make_tuple(act, de_cost, steps);
 				}
@@ -232,7 +256,7 @@ std::tuple<Permutation, int, int> QAP::localSteepest(unsigned const int &n)
 			for (int j = i + 1; j < n; j++)
 			{
 				// Terminate
-				if (double(clock() - begin) / CLOCKS_PER_SEC > 20)
+				if (double(clock() - begin) / CLOCKS_PER_SEC > 60)
 				{
 					return std::make_tuple(act, de_cost, steps);
 				}
@@ -253,85 +277,6 @@ std::tuple<Permutation, int, int> QAP::localSteepest(unsigned const int &n)
 	} while (best_cost != cost);
 
 	return std::make_tuple(act, de_cost, steps);
-}
-
-std::tuple<Permutation, int, int> QAP::tabu(unsigned const int &n){
-
-    std::map<Move, int> tabuList;
-    std::map<Move, int> repetitionFee;
-    std::map<Move, int> costList;
-
-    for( int i = 0; i < n - 1; i++){
-        for( int j = i+1; j < n; j++){
-            tabuList[ Move(i, j) ] = 0;
-            repetitionFee[ Move(i, j) ] = 0;
-        }
-    }
-    const int validityTime = 5;
-
-    int steps = 0;
-    Permutation act = generatePermutation(n);
-    cost = getCost(act);
-
-    int best_cost = cost;
-    int k_candidates = std::round( 1.0/4.0 *n*n );
-    int threshold = INT_MAX;
-
-    clock_t begin = clock();
-
-	do
-	{
-        cost = best_cost;
-        std::vector<std::pair<int, Move>> candidates;
-        for (int i = 0; i < n - 1; i++)
-        {
-			for (int j = i + 1; j < n; j++)
-			{
-                // Terminate
-                if (double(clock() - begin) / CLOCKS_PER_SEC > 20){
-                    return std::make_tuple(act, best_cost, steps);
-                }
-				Permutation y = act;
-				std::swap(y[i], y[j]);
-                candidates.push_back( std::make_pair( updateCost(act, y, i, j),  Move(i, j) ) );
-            }
-        }
-        std::sort(candidates.begin(), candidates.end());
-        auto best_candidate = candidates.front();
-
-        for (int k = 0; k < k_candidates; k++)
-        {
-            auto candidate = candidates[k];
-            // Terminate
-            if (double(clock() - begin) / CLOCKS_PER_SEC > 20){
-                return std::make_tuple(act, best_cost, steps);
-            }
-
-            if( tabuList[candidate.second] - repetitionFee[candidate.second] <= 0 
-                && candidate.first < best_candidate.first ){
-                best_candidate = candidate;
-            }
-            if( best_candidate.first < best_cost ){
-                best_cost = best_candidate.first;
-                auto move = best_candidate.second;
-                std::swap(act[move.first], act[move.second]);
-            }
-        }
-
-        tabuList[best_candidate.second] = validityTime;
-        repetitionFee[best_candidate.second]++;
-
-        for (auto &&elem : tabuList){
-            if( elem.second - 1 > 0 )
-            {
-                elem.second--;
-            }
-        }
-        steps++;
-
-    } while(cost != best_cost);
-
-    return std::make_tuple(act, best_cost, steps);
 }
 
 Permutation QAP::heuristics(unsigned const int &n)
@@ -356,4 +301,168 @@ Permutation QAP::heuristics(unsigned const int &n)
 	}
 
 	return solution;
+}
+
+std::tuple<Permutation, int, int> QAP::simmulatedAnnealing(unsigned const int & n, const double & temp)
+{
+	int steps = 0;
+	double temp0 = temp;
+	int k = 0;
+	int L = (n*(n - 1) / 2); // DO USTALENIA
+	Permutation act = generatePermutation(n);
+	cost = getCost(act);
+
+	int de_cost = cost;
+
+	bool found = false;
+	int init_cost;
+	int finish_thr = (int)(L / 2) / 2;
+	int counter = 0;
+
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<> dis(0, 1);
+
+	clock_t begin = clock();
+
+	do
+	{
+		//std::cout << "Iter " << k << ": " << temp0 << std::endl;
+		for (int length = 0; length < L; length++)
+		{
+			init_cost = cost;
+			for (int i = 0; i < n - 1; i++)
+			{
+				for (int j = i + 1; j < n; j++)
+				{
+					counter++;
+					// Terminate
+					if (double(clock() - begin) / CLOCKS_PER_SEC > 60 || counter >= finish_thr)
+					{
+						return std::make_tuple(act, de_cost, steps);
+					}
+
+					Permutation y(act);
+					std::swap(y[i], y[j]);
+
+					int new_cost = updateCost(act, y, i, j);
+					if (new_cost < cost)
+					{
+						act = y;
+						cost = new_cost;
+						found = true;
+						steps++;
+						break;
+					}
+					else
+					{
+						double cond = exp(-(new_cost - cost) / temp0);
+						double thr = dis(gen);
+
+						if (cond > thr)
+						{
+							//std::cout << "Difference: " << new_cost - cost<< " || Probability: " << cond << " || " << thr << std::endl;
+							act = y;
+							cost = new_cost;
+							found = true;
+							steps++;
+							break;
+						}
+					}
+				}
+				if (found == true)
+				{
+					counter = 0;
+					break;
+				}
+			}
+			found = false;
+		}
+		k++;
+		temp0 *= 0.8;
+
+	} while (init_cost != cost);
+
+	return std::make_tuple(act, de_cost, steps);
+}
+
+std::tuple<Permutation, int, int> QAP::tabu(unsigned const int &n) {
+
+	std::map<Move, int> tabuList;
+	std::map<Move, int> costList;
+
+	for (int i = 0; i < n - 1; i++) {
+		for (int j = i + 1; j < n; j++) {
+			tabuList[Move(i, j)] = 0;
+		}
+	}
+	const int validityTime = 5;
+
+	int steps = 0;
+	Permutation act = generatePermutation(n);
+	cost = getCost(act);
+
+	Permutation best_perm = act;
+	int best_cost = cost;
+
+	clock_t begin = clock();
+
+	do
+	{
+		Move best_move(0, 0);
+		for (int i = 0; i < n - 1; i++)
+		{
+			for (int j = i + 1; j < n; j++)
+			{
+				// Terminate
+				if (double(clock() - begin) / CLOCKS_PER_SEC > 10)
+				{
+					return std::make_tuple(act, best_cost, steps);
+				}
+
+				Permutation y = act;
+				std::swap(y[i], y[j]);
+
+				int cost = updateCost(act, y, i, j);
+				if (cost < best_cost)
+				{
+					best_move = Move(i, j);
+				}
+				costList[Move(i, j)] = cost;
+			}
+		}
+
+		if (best_move == Move(0, 0))
+		{
+			best_move = Move(1, 2);
+			int not_the_worse_cost = costList[Move(1, 2)];
+			for (auto &&elem : tabuList)
+			{
+				if (elem.second > 0)
+				{
+					continue;
+				}
+				if (not_the_worse_cost < costList[elem.first])
+				{
+					not_the_worse_cost = costList[elem.first];
+					best_move = elem.first;
+				}
+			}
+		}
+
+		for (auto&& elem : tabuList)
+		{
+			if (elem.second > 0)
+			{
+				elem.second--;
+			}
+		}
+
+		tabuList[best_move] = validityTime;
+		std::swap(act[best_move.first], act[best_move.second]);
+
+		steps++;
+	} while (1);
+
+	return std::make_tuple(act, best_cost, steps);
 }

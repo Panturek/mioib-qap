@@ -28,6 +28,7 @@ void printToFile(const std::string filename,
 void randomPrintToFile(const std::string filename,
 	const std::vector<int> costs,
 	const std::vector<int> steps,
+	const double f_time,
 	const std::vector<Permutation> permutations)
 {
 	std::ofstream output;
@@ -35,7 +36,8 @@ void randomPrintToFile(const std::string filename,
 	for (int i = 0; i < costs.size(); i++)
 	{
 		output << costs[i] << ",\t"
-			<< steps[i] << ",\t";
+			<< steps[i] << ",\t"
+			<< f_time << ",\t";
 		for (auto&& n : permutations[i]) {
 			output << n << " ";
 		}
@@ -90,3 +92,4 @@ std::vector<int> col_sum(const std::vector<std::vector<int>> matrix) {
 
 	return result;
 }
+

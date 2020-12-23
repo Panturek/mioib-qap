@@ -5,6 +5,8 @@ void time_experiment(const std::string filename, QAP &qap, Algorithm algo, const
 	qap.readData("data/" + filename);
 	int dim = qap.facilities.size();
 
+	double sa_init = qap.findTemp();
+
 	Permutation ending_perm;
 	int init_cost;
 	int instance_steps;
@@ -17,12 +19,16 @@ void time_experiment(const std::string filename, QAP &qap, Algorithm algo, const
 	std::string algo_name;
 
 	// EXPERIMENT
-	int limit = 60;
+	int limit = 600;
 
 	int l = 0;
 	clock_t begin = clock();
 	do
 	{
+		if (l > 300) {
+			break;
+		}
+
 		clock_t algo_time = clock();
 		if (algo == localSteepest)
 		{
@@ -34,6 +40,17 @@ void time_experiment(const std::string filename, QAP &qap, Algorithm algo, const
 			std::tie(ending_perm, init_cost, instance_steps) = qap.localGreedy(dim);
 			algo_name = "greedy";
 		}
+		else if (algo == simmulatedAnnealing)
+		{
+			std::tie(ending_perm, init_cost, instance_steps) = qap.simmulatedAnnealing(dim, sa_init);
+			algo_name = "sa";
+		}
+		else if (algo == tabu)
+		{
+			std::tie(ending_perm, init_cost, instance_steps) = qap.tabu(dim);
+			algo_name = "tabu";
+		}
+
 		l++;
 		steps.push_back(instance_steps);
 		costs.push_back(qap.getCost(ending_perm));
@@ -47,7 +64,7 @@ void time_experiment(const std::string filename, QAP &qap, Algorithm algo, const
 	printToFile(dirout + "/" + algo_name + "_" + filename, times, func_time, costs, steps, starting_costs, perms);
 }
 
-void random_experiment(const std::string filename, QAP &qap, Algorithm algo, const std::string dirout)
+void random_experiment(const std::string filename, QAP &qap, Algorithm algo, const std::string dirout, const double algotime)
 {
 	qap.readData("data/" + filename);
 	int dim = qap.facilities.size();
@@ -60,24 +77,37 @@ void random_experiment(const std::string filename, QAP &qap, Algorithm algo, con
 	std::vector<Permutation> perms;
 	std::string algo_name;
 
-	for (int i = 0; i < 200; i++)
+
+	int limit = 300;
+	int l = 0;
+	clock_t begin = clock();
+	do
 	{
+		if (l > 300) {
+			break;
+		}
+
+		clock_t algo_time = clock();
 		if (algo == randomSearch)
 		{
-			std::tie(ending_perm, instance_steps) = qap.randomSearch(dim, 0.1);
+			std::tie(ending_perm, instance_steps) = qap.randomSearch(dim, algotime);
 			algo_name = "r";
 		}
 		else if (algo == randomWalk)
 		{
-			std::tie(ending_perm, instance_steps) = qap.randomWalk(dim, 0.1);
+			std::tie(ending_perm, instance_steps) = qap.randomWalk(dim, algotime);
 			algo_name = "rw";
 		}
+		l++;
 		steps.push_back(instance_steps);
 		costs.push_back(qap.getCost(ending_perm));
 		perms.push_back(ending_perm);
 
-	}
-	randomPrintToFile(dirout + "/" + algo_name + "_" + filename, costs, steps, perms);
+	} while (double(clock() - begin) / CLOCKS_PER_SEC < limit);
+
+	double func_time = (double(clock() - begin) / CLOCKS_PER_SEC) / l;
+
+	randomPrintToFile(dirout + "/" + algo_name + "_" + filename, costs, steps, func_time, perms);
 }
 
 void heuristics_experiment(const std::string filename, QAP &qap, const std::string dirout)
@@ -93,5 +123,5 @@ void heuristics_experiment(const std::string filename, QAP &qap, const std::stri
 
 	double func_time = double(clock() - begin) / CLOCKS_PER_SEC;
 
-	heuristicsPrintToFile(dirout + "/" + filename, func_time, qap.getCost(solution), solution);
+	heuristicsPrintToFile(dirout + "/" + "heur_" + filename, func_time, qap.getCost(solution), solution);
 }

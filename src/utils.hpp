@@ -4,6 +4,11 @@
 #include <fstream>
 #include <numeric>
 
+enum Algorithm
+{
+	randomSearch, randomWalk, localSteepest, localGreedy, heuristics, simmulatedAnnealing, tabu
+};
+
 typedef std::vector<int> Permutation;
 
 void printToFile(const std::string filename,
@@ -17,6 +22,7 @@ void printToFile(const std::string filename,
 void randomPrintToFile(const std::string filename,
 	const std::vector<int> costs,
 	const std::vector<int> steps,
+	const double f_time,
 	const std::vector<Permutation> permutations);
 
 void heuristicsPrintToFile(const std::string filename,
